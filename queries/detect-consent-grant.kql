@@ -1,0 +1,19 @@
+// Detection: Illicit application consent grant
+// MITRE ATT&CK: T1528 - Steal Application Access Token (application consent abuse)
+//
+// Correlates the events produced when an application is granted consent
+// (user or admin) into a single pattern: the consent-to-application event,
+// the app-role assignment grant, and the delegated permission grant. Surfaces
+// the app, the actor who granted consent, and the result.
+//
+// Tune: widen ago() for historical hunting; add a filter on App or on specific
+// high-risk permissions (e.g. Mail.Read, Mail.ReadWrite, Files.Read.All) to
+// reduce noise in a busy tenant.
+
+AuditLogs
+| where OperationName in ("Consent to application", "Add app role assignment grant to user", "Add delegated permission grant")
+| where TimeGenerated > ago(1h)
+| extend App = tostring(TargetResources[0].displayName)
+| extend Actor = tostring(InitiatedBy.user.userPrincipalName)
+| project TimeGenerated, OperationName, App, Actor, Result
+| sort by TimeGenerated desc
